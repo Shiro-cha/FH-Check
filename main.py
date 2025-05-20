@@ -21,7 +21,7 @@ def parse_arguments():
                         help='Mode d\'affichage (cli ou gui)')
     
     parser.add_argument('--condition', type=str, 
-                        choices=['normal_urbain', 'pluie_urbain', 'brouillard_urbain', 'normal_rural', 'pluie_rural'],
+                        choices=['normal_urbain', 'pluie_urbain', 'brouillard_urbain', 'normal_rural', 'pluie_rural', 'brouillard_rural'],
                         default='normal_urbain',
                         help='Condition initiale de simulation')
     
