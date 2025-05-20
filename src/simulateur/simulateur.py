@@ -50,6 +50,12 @@ class SimulateurFaisceauHertzien:
                 "snr_mean": 20, "snr_std": 2.5,
                 "ber_mean": 0.00005, "ber_std": 0.000025,
                 "disponibilite_mean": 96.0, "disponibilite_std": 1.5
+            },
+            "brouillard_rural": {
+                "rssi_mean": -65, "rssi_std": 3,
+                "snr_mean": 25, "snr_std": 2,
+                "ber_mean": 0.00001, "ber_std": 0.000005,
+                "disponibilite_mean": 98.0, "disponibilite_std": 0.5
             }
         }
         
