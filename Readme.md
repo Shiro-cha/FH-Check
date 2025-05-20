@@ -16,3 +16,4 @@ python main.py --generer-dataset --samples 2000 --output my_dataset.csv
 ```python
 python main.py --entrainer-modele --samples 1500
 ```
+NB: Les paramètres dans le code ne sont pas verifiés et ne reflètent pas les conditions reelles.
