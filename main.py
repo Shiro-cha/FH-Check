@@ -7,6 +7,7 @@ Point d'entrée principal pour l'application de détection d'anomalies dans les 
 
 import argparse
 import sys
+import subprocess
 from src.simulateur.simulateur import SimulateurFaisceauHertzien
 from src.ia.modele import ModeleIA
 from src.affichage.cli import AffichageCLI
@@ -17,8 +18,8 @@ def parse_arguments():
     """Parse les arguments de ligne de commande."""
     parser = argparse.ArgumentParser(description='Détection d\'anomalies dans les liaisons faisceaux hertziens')
     
-    parser.add_argument('--mode', type=str, choices=['cli', 'gui'], default='cli',
-                        help='Mode d\'affichage (cli ou gui)')
+    parser.add_argument('--mode', type=str, choices=['cli', 'gui', 'streamlit'], default='cli',
+                        help='Mode d\'affichage (cli, gui ou streamlit)')
     
     parser.add_argument('--condition', type=str, 
                         choices=['normal_urbain', 'pluie_urbain', 'brouillard_urbain', 'normal_rural', 'pluie_rural', 'brouillard_rural'],
@@ -43,10 +44,10 @@ def main():
     """Fonction principale."""
     args = parse_arguments()
     
-
+    # Initialiser le simulateur
     simulateur = SimulateurFaisceauHertzien()
     
-
+    # Génération de dataset
     if args.generer_dataset:
         print(f"Génération d'un dataset avec {args.samples} échantillons par condition...")
         generator = DatasetGenerator(simulateur)
@@ -55,10 +56,10 @@ def main():
         print(f"Dataset généré et sauvegardé dans {args.output}")
         return
     
-
+    # Initialiser le modèle
     modele = ModeleIA()
     
-
+    # Entraînement du modèle
     if args.entrainer_modele:
         print("Génération d'un dataset pour l'entraînement...")
         generator = DatasetGenerator(simulateur)
@@ -70,7 +71,7 @@ def main():
         print("Modèle entraîné et sauvegardé dans modele.pkl")
         return
     
-
+    # Charger ou entraîner un modèle
     try:
         modele.charger("modele.pkl")
         print("Modèle pré-entraîné chargé")
@@ -81,13 +82,26 @@ def main():
         modele.entrainer_et_evaluer(dataset)
         modele.sauvegarder("modele.pkl")
     
-  
+    # Sélection du mode d'affichage
     if args.mode == 'cli':
         affichage = AffichageCLI(simulateur, modele)
         affichage.demarrer(args.condition)
-    else: 
+    elif args.mode == 'gui':
         affichage = AffichageGraphique(simulateur, modele)
         affichage.demarrer(args.condition)
+    elif args.mode == 'streamlit':
+        # Lancer l'application Streamlit
+        try:
+            subprocess.run([
+                sys.executable, "-m", "streamlit", "run", 
+                "src/affichage/streamlit_app.py", 
+                "--", 
+                "--condition", args.condition
+            ], check=True)
+        except subprocess.CalledProcessError:
+            print("Erreur lors du lancement de l'application Streamlit")
+        except FileNotFoundError:
+            print("Streamlit n'est pas installé. Veuillez l'installer avec: pip install streamlit")
 
 if __name__ == "__main__":
     try:

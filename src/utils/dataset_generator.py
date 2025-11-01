@@ -1,59 +1,54 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Module contenant la classe DatasetGenerator pour générer des datasets d'entraînement.
-"""
-
 import pandas as pd
-from typing import Dict, List, Any
+from tqdm import tqdm  # pip install tqdm pour barre de progression
+import os
+import sys
+
+# Ajouter src au PYTHONPATH pour importer le simulateur
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from src.simulateur.simulateur import SimulateurFaisceauHertzien
+
 
 class DatasetGenerator:
     """
-    Classe pour générer des datasets d'entraînement pour le modèle d'IA.
+    Génère un dataset complet à partir du simulateur FH
     """
-    
+
     def __init__(self, simulateur: SimulateurFaisceauHertzien):
-        """
-        Initialise le générateur de dataset.
-        
-        Args:
-            simulateur: Une instance de SimulateurFaisceauHertzien
-        """
         self.simulateur = simulateur
-    
-    def generer_dataset(self, n_samples_per_condition: int = 1000) -> pd.DataFrame:
+
+    def generer_dataset(self, n_samples_per_condition=1000, save_path="dataset_FH.csv"):
         """
-        Génère un dataset complet pour l'entraînement du modèle.
-        
-        Args:
-            n_samples_per_condition: Nombre d'échantillons à générer par condition
-            
-        Returns:
-            Le dataset complet avec étiquettes
+        Génère un dataset pour toutes les conditions disponibles.
         """
-        dfs = []
+        all_data = []
+
         conditions = self.simulateur.get_conditions_disponibles()
-        
-        print(f"Génération du dataset avec {len(conditions)} conditions...")
-        
-        for i, condition in enumerate(conditions):
-            print(f"  Condition {i+1}/{len(conditions)}: {condition}")
-            df = self.simulateur.generer_donnees(condition, n_samples_per_condition)
-            dfs.append(df)
-        
-        dataset = pd.concat(dfs, ignore_index=True)
-        
-        # Ajouter les étiquettes (OK, KO, dégradé)
-        print("Ajout des étiquettes...")
-        dataset["etat"] = dataset.apply(self.simulateur.classifier_etat_manuel, axis=1)
-        
-        # Afficher des statistiques sur le dataset
-        print("\nStatistiques du dataset:")
-        print(f"  Nombre total d'échantillons: {len(dataset)}")
-        print("  Distribution des étiquettes:")
-        for etat, count in dataset["etat"].value_counts().items():
-            print(f"    {etat}: {count} ({count/len(dataset)*100:.2f}%)")
-        
-        return dataset
+        print(f"Génération du dataset FH pour {len(conditions)} conditions...")
+
+        for cond in conditions:
+            print(f"Simuler condition : {cond}")
+            for _ in tqdm(range(n_samples_per_condition)):
+                sample = self.simulateur.simulate_fh()
+                sample["Condition"] = cond  # Forcer la condition
+                all_data.append(sample)
+
+        df = pd.DataFrame(all_data)
+
+        # Sauvegarde CSV
+        df.to_csv(save_path, index=False)
+        print(f"Dataset généré avec succès : {save_path}")
+        return df
+
+
+# --------------------------
+# Lancer directement le générateur
+# --------------------------
+if __name__ == "__main__":
+    simulateur = SimulateurFaisceauHertzien()
+    generator = DatasetGenerator(simulateur)
+    # 1000 échantillons par condition (modifiable)
+    generator.generer_dataset(n_samples_per_condition=500)

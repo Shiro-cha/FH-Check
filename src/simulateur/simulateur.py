@@ -1,148 +1,147 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Module contenant la classe SimulateurFaisceauHertzien pour simuler les paramètres
-de liaisons faisceaux hertziens dans différentes conditions.
-"""
-
 import numpy as np
 import pandas as pd
-import time
-from typing import Dict, List, Any
 
 class SimulateurFaisceauHertzien:
     """
-    Classe pour simuler les paramètres de liaisons faisceaux hertziens
-    dans différentes conditions environnementales.
+    Simulateur de liaison FH selon distance, météo, urbain/rural,
+    modulation, puissance et antenne, prêt pour dataset IA.
     """
-    
+
     def __init__(self):
-        """Initialise le simulateur avec les paramètres par défaut pour différentes conditions."""
-        # Paramètres de base pour différentes conditions
-        self.conditions = {
-            "normal_urbain": {
-                "rssi_mean": -65, "rssi_std": 3,
-                "snr_mean": 25, "snr_std": 2,
-                "ber_mean": 0.00001, "ber_std": 0.000005,
-                "disponibilite_mean": 99.9, "disponibilite_std": 0.05
-            },
-            "pluie_urbain": {
-                "rssi_mean": -75, "rssi_std": 5,
-                "snr_mean": 18, "snr_std": 3,
-                "ber_mean": 0.0001, "ber_std": 0.00005,
-                "disponibilite_mean": 95.0, "disponibilite_std": 2.0
-            },
-            "brouillard_urbain": {
-                "rssi_mean": -70, "rssi_std": 4,
-                "snr_mean": 20, "snr_std": 2.5,
-                "ber_mean": 0.00005, "ber_std": 0.000025,
-                "disponibilite_mean": 97.0, "disponibilite_std": 1.0
-            },
-            "normal_rural": {
-                "rssi_mean": -60, "rssi_std": 2,
-                "snr_mean": 28, "snr_std": 1.5,
-                "ber_mean": 0.000005, "ber_std": 0.0000025,
-                "disponibilite_mean": 99.95, "disponibilite_std": 0.02
-            },
-            "pluie_rural": {
-                "rssi_mean": -70, "rssi_std": 4,
-                "snr_mean": 20, "snr_std": 2.5,
-                "ber_mean": 0.00005, "ber_std": 0.000025,
-                "disponibilite_mean": 96.0, "disponibilite_std": 1.5
-            },
-            "brouillard_rural": {
-                "rssi_mean": -65, "rssi_std": 3,
-                "snr_mean": 25, "snr_std": 2,
-                "ber_mean": 0.00001, "ber_std": 0.000005,
-                "disponibilite_mean": 98.0, "disponibilite_std": 0.5
-            }
-        }
-        
-        # Seuils pour la classification
-        self.seuils = {
-            "rssi": {"ok": -70, "degrade": -80},
-            "snr": {"ok": 20, "degrade": 15},
-            "ber": {"ok": 0.00005, "degrade": 0.0001},
-            "disponibilite": {"ok": 99.0, "degrade": 95.0}
-        }
-    
-    def get_conditions_disponibles(self) -> List[str]:
-        """Retourne la liste des conditions disponibles."""
-        return list(self.conditions.keys())
-    
-    def generer_donnees(self, condition: str, n_samples: int = 1) -> pd.DataFrame:
-        """
-        Génère des données simulées pour une condition spécifique.
-        
-        Args:
-            condition: La condition environnementale à simuler
-            n_samples: Le nombre d'échantillons à générer
-            
-        Returns:
-            DataFrame contenant les données simulées
-        
-        Raises:
-            ValueError: Si la condition n'est pas reconnue
-        """
-        if condition not in self.conditions:
-            raise ValueError(f"Condition {condition} non reconnue")
-            
-        params = self.conditions[condition]
-        
-        data = {
-            "timestamp": [time.time() + i for i in range(n_samples)],
-            "rssi": np.random.normal(params["rssi_mean"], params["rssi_std"], n_samples),
-            "snr": np.random.normal(params["snr_mean"], params["snr_std"], n_samples),
-            "ber": np.random.normal(params["ber_mean"], params["ber_std"], n_samples),
-            "disponibilite": np.random.normal(params["disponibilite_mean"], params["disponibilite_std"], n_samples),
-            "condition": [condition] * n_samples
-        }
-        
-        # Assurer que les valeurs sont dans des plages réalistes
-        data["ber"] = np.clip(data["ber"], 0, 1)
-        data["disponibilite"] = np.clip(data["disponibilite"], 0, 100)
-        
-        return pd.DataFrame(data)
-    
-    def classifier_etat_manuel(self, row: pd.Series) -> str:
-        """
-        Classifie l'état de la liaison basé sur des règles simples.
-        
-        Args:
-            row: Une ligne de données contenant les paramètres de la liaison
-            
-        Returns:
-            L'état de la liaison: "OK", "DEGRADE" ou "KO"
-        """
-        if (row["rssi"] >= self.seuils["rssi"]["ok"] and 
-            row["snr"] >= self.seuils["snr"]["ok"] and 
-            row["ber"] <= self.seuils["ber"]["ok"] and 
-            row["disponibilite"] >= self.seuils["disponibilite"]["ok"]):
-            return "OK"
-        elif (row["rssi"] < self.seuils["rssi"]["degrade"] or 
-              row["snr"] < self.seuils["snr"]["degrade"] or 
-              row["ber"] > self.seuils["ber"]["degrade"] or 
-              row["disponibilite"] < self.seuils["disponibilite"]["degrade"]):
-            return "KO"
+        self.conditions = [
+            "Normal_Rural", "Normal_Urbain", "Pluie_Rural", "Pluie_Urbain",
+            "Brouillard_Rural", "Brouillard_Urbain", "Cyclone", "Orage",
+            "Foret_dense", "Vent_fort", "Montagneux"
+        ]
+        self.frequencies = [4,6,8,11,13,18,23,26,32,38]  # GHz
+        self.eband = [70,80]  # GHz courte distance <5km
+        self.modulations = ["BPSK","QPSK","8PSK","16-QAM","32-QAM","64-QAM","256-QAM"]
+        self.bandwidths = [14,28,56,112,224]  # MHz
+
+    def simulate_fh(self) -> dict:
+        # Choix aléatoire condition et distance
+        cond = np.random.choice(self.conditions)
+        distance = np.random.uniform(0.5,50)  # km
+
+        # Fréquence
+        if distance <= 5:
+            freq = np.random.choice(self.frequencies + self.eband)
         else:
-            return "DEGRADE"
-    
-    def ajouter_condition(self, nom: str, parametres: Dict[str, float]) -> None:
+            freq = np.random.choice(self.frequencies)
+
+        # Bandwidth
+        bw = np.random.choice(self.bandwidths)
+
+        # Tx Power et Gain selon distance
+        if distance <= 5:
+            tx_power = np.random.uniform(17,20)
+            gain = np.random.uniform(20,25)
+        elif distance <= 20:
+            tx_power = np.random.uniform(20,24)
+            gain = np.random.uniform(25,30)
+        else:
+            tx_power = np.random.uniform(24,27)
+            gain = np.random.uniform(30,40)
+
+        # RSSI de base
+        rssi = tx_power + gain - distance*2 - np.random.uniform(0,2)
+
+        # Ajustements selon conditions
+        if "Urbain" in cond:
+            rssi -= np.random.uniform(5,10)  # pénalité RSSI urbain
+        if "Pluie" in cond or "Brouillard" in cond:
+            rssi -= np.random.uniform(2,5)
+        if "Foret" in cond or "Montagneux" in cond:
+            rssi -= np.random.uniform(3,7)
+        if "Cyclone" in cond or "Orage" in cond:
+            rssi -= np.random.uniform(10,15)
+        if "Vent_fort" in cond:
+            rssi -= np.random.uniform(0,3)
+
+        # SNR corrélé au RSSI, avec bruit aléatoire
+        snr = max(0, rssi + np.random.uniform(0,10))
+
+        # BER corrélé au SNR et conditions
+        if snr >= 20:
+            ber = np.random.uniform(0,1e-6)
+        elif snr >= 10:
+            ber = np.random.uniform(1e-6,1e-3)
+        else:
+            ber = np.random.uniform(1e-3,1e-1)
+
+        # Renforcer BER si conditions difficiles + distance longue
+        if ("Pluie" in cond or "Brouillard" in cond or "Urbain" in cond or "Foret" in cond or "Montagneux" in cond) and distance > 20:
+            ber *= np.random.uniform(1.5,3)
+
+        # Disponibilité selon scénario combiné
+        if "Cyclone" in cond or "Orage" in cond:
+            availability = np.random.uniform(90,98)
+        elif distance <= 5 and "Rural" in cond:
+            availability = np.random.uniform(99.95,100)
+        elif "Pluie" in cond or "Brouillard" in cond or "Urbain" in cond:
+            availability = np.random.uniform(99,99.95)
+        else:
+            availability = np.random.uniform(99.5,99.99)
+
+        # Modulation adaptée
+        if distance > 20 or "Pluie" in cond or "Brouillard" in cond or "Urbain" in cond:
+            mod = np.random.choice(["BPSK","QPSK","8PSK","16-QAM"])
+        else:
+            mod = np.random.choice(self.modulations)
+
+        # Classification liaison
+        if rssi > -70 and snr >= 20 and ber <= 1e-6:
+            status = "OK"
+        elif rssi > -85 and snr >=10 and ber <= 1e-3:
+            status = "Dégradé"
+        else:
+            status = "KO"
+
+        return {
+            "Condition": cond,
+            "Distance_km": round(distance,2),
+            "Frequency_GHz": freq,
+            "Bandwidth_MHz": bw,
+            "Modulation": mod,
+            "TxPower_dBm": round(tx_power,2),
+            "Gain_dBi": round(gain,2),
+            "RSSI_dBm": round(rssi,2),
+            "SNR_dB": round(snr,2),
+            "BER": ber,
+            "Availability_percent": round(availability,2),
+            "Status": status
+        }
+
+    def generer_donnees(self, condition: str = None) -> pd.DataFrame:
         """
-        Ajoute une nouvelle condition au simulateur.
-        
-        Args:
-            nom: Le nom de la nouvelle condition
-            parametres: Les paramètres de la condition
+        Génère un DataFrame pour l'affichage CLI.
         """
-        self.conditions[nom] = parametres
-    
-    def modifier_seuils(self, nouveaux_seuils: Dict[str, Dict[str, float]]) -> None:
-        """
-        Modifie les seuils de classification.
-        
-        Args:
-            nouveaux_seuils: Les nouveaux seuils à utiliser
-        """
-        self.seuils.update(nouveaux_seuils)
+        sample = self.simulate_fh()
+        if condition:
+            sample["Condition"] = condition
+        df = pd.DataFrame([{
+            "rssi": sample["RSSI_dBm"],
+            "snr": sample["SNR_dB"],
+            "ber": sample["BER"],
+            "disponibilite": sample["Availability_percent"],
+            "condition": sample["Condition"]
+        }])
+        return df
+
+    def get_conditions_disponibles(self):
+        return self.conditions
+
+
+# --------------------------------------------------
+# Test rapide CLI
+# --------------------------------------------------
+if __name__ == "__main__":
+    sim = SimulateurFaisceauHertzien()
+    for _ in range(5):
+        sample = sim.simulate_fh()
+        for k,v in sample.items():
+            print(f"{k}: {v}")
+        print("-"*40)
